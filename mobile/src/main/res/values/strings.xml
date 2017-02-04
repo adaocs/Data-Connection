@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Test</string>
+
+    <string-array name = "units">
+        <item>mL</item>
+        <item>L</item>
+        <item>fl.oz</item>
+        <item>pint</item>
+    </string-array>
+</resources>
