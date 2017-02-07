@@ -20,14 +20,17 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <service android:name=".MyWearableListenerService" >
+            <service android:name=".PhoneService"
+                     android:enabled = "true"
+                     android:exported="true">
                 <intent-filter>
                     <!-- listeners receive events that match the action and data filters -->
                     <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
                     <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                     <action android:name="com.google.android.gms.wearable.CAPABILITY_CHANGED" />
                     <action android:name="com.google.android.gms.wearable.CHANNEL_EVENT" />
-                    <data android:scheme="wear" android:host="*" android:pathPrefix="/prefix" />
+
+                    <data android:scheme="wear" android:host="*" android:pathPrefix="/Value" />
                 </intent-filter>
             </service>
         </activity>

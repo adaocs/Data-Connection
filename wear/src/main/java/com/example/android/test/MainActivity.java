@@ -12,7 +12,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 
 
 public class MainActivity extends WearableActivity implements View.OnClickListener{
@@ -107,7 +106,11 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
         if(service != null) {
             // Unbind from the service and then stop it manually.
             // Unregister all listeners and write to file.
+            if(binder != null)
+                binder.unregister();
+            unbindService(serviceConnection);
             stopService(service);
+            binder = null;
             service = null;
             startButton.setEnabled(true);
 

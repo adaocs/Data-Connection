@@ -41,14 +41,14 @@ import java.util.Date;
 //Background service
 public class MyService extends Service implements SensorEventListener, GoogleApiClient.ConnectionCallbacks{
 
-    // private ArrayList<Accelerometer> acceleromenterList;
-    //private ArrayList<Gyroscope> gyroscopeList;
+
 
     private Sensor linearAcc;
     private Sensor gyroscope;
     private GoogleApiClient mGoogleApiClient;
     private boolean connected;
     private Handler handler;
+    private final IBinder binder = new MyBinder();
 
     private SensorManager SM;
 
@@ -71,8 +71,8 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
         linearAcc = SM.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
         // Register sensor listener
-        SM.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        SM.registerListener(this, linearAcc, SensorManager.SENSOR_DELAY_NORMAL);
+        SM.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+        SM.registerListener(this, linearAcc, SensorManager.SENSOR_DELAY_FASTEST);
 
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -109,7 +109,7 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
                 long timeStamp = System.currentTimeMillis();
 
                 sendToPhone(timeStamp, sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
-                sendValuesAccelerometer(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
+              //  sendValuesAccelerometer(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
 
             } catch (IllegalStateException e){
 
@@ -119,7 +119,7 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
         } else if (sensorEvent.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             try {
 
-                sendValuesGyro(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
+            //    sendValuesGyro(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
 
             } catch (IllegalStateException e) {
 
@@ -142,7 +142,7 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
     }
     @Override
     public IBinder onBind(Intent intent) {
-       return null;
+       return binder;
     }
 
     public void sendToPhone(long time, float x, float y, float z){
@@ -155,7 +155,7 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
 
             PutDataRequest putDataRequest = dataMapRequest.asPutDataRequest();
             putDataRequest.setUrgent();
-            Wearable.DataApi.putDataItem(mGoogleApiClient,putDataRequest).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+            Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                 @Override
                 public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
                     if(dataItemResult.getStatus().isSuccess()){
@@ -180,6 +180,11 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
         void setHandler(Handler tempHandler) {
             handler = tempHandler;
         }
+
+        public void unregister() {
+            SM.unregisterListener(MyService.this);
+        }
+
     }
     // function that sends values of accelerometer to handler
     private void sendValuesAccelerometer(float x, float y, float z) {
