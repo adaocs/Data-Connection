@@ -9,6 +9,7 @@ import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
 
@@ -20,19 +21,23 @@ import java.util.ArrayList;
 
 public class PhoneService extends WearableListenerService implements GoogleApiClient.ConnectionCallbacks{
 
-    private GoogleApiClient googleApiClient;
+    //private GoogleApiClient googleApiClient;
     private ArrayList<Float> X,Y,Z;
 
+
     @Override
-            public void onCreate(){
-            super.onCreate();
-             googleApiClient=
-                     new GoogleApiClient.Builder(this).addApi(Wearable.API).addConnectionCallbacks(this).build();
-            googleApiClient.connect();
+    public void onCreate(){
+        Log.d("", "ASDASDA");
+
+        super.onCreate();
+//        googleApiClient=
+//                     new GoogleApiClient.Builder(this).addApi(Wearable.API).addConnectionCallbacks(this).build();
+//            googleApiClient.connect();
     }
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents){
+        Log.d("", "ASDASDA");
         for(DataEvent dataEvent: dataEvents){
             if(dataEvent.getType() == DataEvent.TYPE_CHANGED){
                 DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
@@ -69,6 +74,18 @@ public class PhoneService extends WearableListenerService implements GoogleApiCl
 
     @Override
     public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onPeerConnected(Node peer){
+        Log.d("", "connected");
+
+    }
+
+    @Override
+    public void onPeerDisconnected(Node peer){
+        Log.d("", "disconnected");
 
     }
 }
