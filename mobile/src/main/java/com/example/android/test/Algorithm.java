@@ -25,6 +25,16 @@ public class Algorithm {
         this.time = time;
         this.dthreshold = dthreshold;
         this.cthreshold = cthreshold;
+
+        velocity = new ArrayList<>();
+        distance = new ArrayList<>();
+
+        // Preprocess the time to make it relative and in seconds.
+        Long startTime = time.get(0);
+        for(int a=0; a < time.size(); a++) {
+            time.set(a, time.get(a) - startTime);
+            time.set(a, time.get(a) / 1000);
+        }
     }
 
     /* Private method which returns the velocity after integrating the acceleration. */
@@ -77,6 +87,9 @@ public class Algorithm {
 
     /* Method which return the distance the person has walked. */
     public ArrayList<Float> getDistance() {
+        calculateVelocity();
+        calculateDistance();
+
         return distance;
     }
 }

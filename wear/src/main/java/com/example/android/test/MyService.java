@@ -43,8 +43,7 @@ import java.util.Date;
 
 //Background service
 public class MyService extends Service implements SensorEventListener,
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
-        MessageApi.MessageListener {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Sensor linearAcc;
     private Sensor gyroscope;
@@ -137,7 +136,6 @@ public class MyService extends Service implements SensorEventListener,
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         // Register a message api callback, which will allow us to start / stop the data collection on the watch.
-        Wearable.MessageApi.addListener(mGoogleApiClient, this);
         connected = true;
     }
 
@@ -179,12 +177,6 @@ public class MyService extends Service implements SensorEventListener,
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Log.d("Wear Activity", "Failed to connect to google api service : "+connectionResult.getErrorMessage());
     }
-
-    @Override
-    public void onMessageReceived(MessageEvent messageEvent) {
-        Log.d("Wear Activity", "Received a message");
-    }
-
 
     public class MyBinder extends Binder {
         // Expose a function that sets the handler. These functions will be exported to the calling

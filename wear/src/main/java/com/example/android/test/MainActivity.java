@@ -7,14 +7,25 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.activity.WearableActivity;
+import android.support.wearable.view.ConfirmationOverlay;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Wearable;
 
 
-public class MainActivity extends WearableActivity implements View.OnClickListener{
+public class MainActivity extends WearableActivity implements View.OnClickListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
+        MessageApi.MessageListener {
 
     private Button startButton;
     private Handler handler;
@@ -24,6 +35,14 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
     private TextView gXtext, gYtext, gZtext;
     MyService.MyBinder binder;
 
+    private GoogleApiClient googleApiClient;
+
+    private final String MONITORING_START = "/start_monitoring";
+    private final String MONITORING_STOP = "/stop_monitoring";
+
+    // Variable that holds if the monitoring service is currently on or not. This is
+    // so that duplicate messages don't start duplicate monitoring services.
+    private boolean monitoringStatus = false;
 
     public MainActivity() {
         // Create the handler to handle the messages.
@@ -48,6 +67,18 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        googleApiClient.connect();
+    }
+
+    @Override
+    public void onDestroy() {
+        googleApiClient.disconnect();
+        super.onDestroy();
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -67,6 +98,10 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
         stopButton = (Button)findViewById(R.id.stop);
         stopButton.setOnClickListener(this);
 
+        googleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .build();
 
     }
 
@@ -96,9 +131,6 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
         service = new Intent(this, MyService.class);
         startService(service);  // Start the service.
         bindService(service, serviceConnection, BIND_IMPORTANT);
-
-
-
     }
 
     // Stop monitoring
@@ -131,10 +163,42 @@ public class MainActivity extends WearableActivity implements View.OnClickListen
         @Override
         public void onServiceDisconnected(ComponentName name) {
             // If you want to do any house keeping once the service has been unbounded.
-
-
         }
     };//
 
 
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Wearable.MessageApi.addListener(googleApiClient, this);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Wearable.MessageApi.removeListener(googleApiClient, this);
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        if(messageEvent.getPath().equals(MONITORING_START)) {
+            // Start the monitoring service to start the data collection and transmission to the phone.
+            Log.d("Wear Activity", "Message to start the monitoring received");
+            if(!monitoringStatus) {
+                monitoringStatus = true;
+                startMonitoring();
+            }
+        }
+        if(messageEvent.getPath().equals(MONITORING_STOP)) {
+            // Stop the monitoring service.
+            Log.d("Wear Activity", "Message to stop the monitoring service");
+            if(monitoringStatus) {
+                monitoringStatus = false;
+                stopMonitoring();
+            }
+        }
+    }
 }
