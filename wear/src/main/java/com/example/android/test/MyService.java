@@ -23,9 +23,12 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.support.wearable.activity.WearableActivity;
 
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
@@ -39,9 +42,9 @@ import java.util.Date;
 
 
 //Background service
-public class MyService extends Service implements SensorEventListener, GoogleApiClient.ConnectionCallbacks{
-
-
+public class MyService extends Service implements SensorEventListener,
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
+        MessageApi.MessageListener {
 
     private Sensor linearAcc;
     private Sensor gyroscope;
@@ -133,6 +136,8 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+        // Register a message api callback, which will allow us to start / stop the data collection on the watch.
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
         connected = true;
     }
 
@@ -159,10 +164,10 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
                 @Override
                 public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
                     if(dataItemResult.getStatus().isSuccess()){
-                        Log.d("", "sent to phone successfully");
+                        Log.d("Wear Activity", "sent to phone successfully");
                     }
                     else {
-                        Log.d("", "failed");
+                        Log.d("Wear Activity", "failed");
                     }
                 }
             });
@@ -170,8 +175,15 @@ public class MyService extends Service implements SensorEventListener, GoogleApi
 
     }
 
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d("Wear Activity", "Failed to connect to google api service : "+connectionResult.getErrorMessage());
+    }
 
-
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        Log.d("Wear Activity", "Received a message");
+    }
 
 
     public class MyBinder extends Binder {
