@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.ButtonBarLayout;
+import android.support.v7.widget.ThemedSpinnerAdapter;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -24,6 +25,8 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
+
+import junit.framework.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.RunnableFuture;
@@ -99,6 +102,21 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                }).start();
            }
        });
+
+       /* DEBUG : Unit test the Algorithm with data. */
+       /*
+       ArrayList<Long> time = new ArrayList<>(TestData.Time.length);
+       ArrayList<Float> y = new ArrayList<>(TestData.Y.length);
+
+       for(int a=0; a < TestData.Time.length; a++) {
+           time.add(TestData.Time[a]);
+           y.add(TestData.Y[a]);
+       }
+
+       Algorithm algo = new Algorithm(y, time, 0.8f, 1);
+       ArrayList<Float> distance = algo.getDistance();
+       Log.d("Phone Activity", "Distance walked "+distance.get(distance.size()-1));
+       */
    }
 
     @Override
