@@ -45,6 +45,8 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
 
     private TextView txtDistance;
 
+    private RTAlgorithm rtAlgorithm;
+
    @Override
     public void onCreate(Bundle bundle) {
        super.onCreate(bundle);
@@ -66,6 +68,9 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
        Button buttStopMonitoring = (Button)findViewById(R.id.butt_stopmonitoring);
        txtDistance = (TextView)findViewById(R.id.txt_distance);
 
+       // Init the processing algorithm.
+       rtAlgorithm = new RTAlgorithm(0.8F, 1);
+
        buttStartMonitoring.setOnClickListener(new View.OnClickListener() {
            @Override
            public void onClick(View view) {
@@ -75,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                Z.clear();
                time.clear();
 
+               rtAlgorithm = new RTAlgorithm(1F, 1);
+
                sendStartMonitoring();
            }
        });
@@ -83,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
            @Override
            public void onClick(View view) {
                sendStopMonitoring();
-
+               /*
                // Create a new execution thread and process the data using our algorithm.
                new Thread(new Runnable() {
                    @Override
@@ -100,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                        });
                    }
                }).start();
+               */
            }
        });
 
@@ -199,6 +207,17 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                     Y.add(dataMap.getFloat("Y"));
                     Z.add(dataMap.getFloat("Z"));
                     time.add(dataMap.getLong("Time"));
+
+                    rtAlgorithm.addAcceleration(dataMap.getLong("Time"), dataMap.getFloat("Y"));
+                    rtAlgorithm.calculateVelocity();
+                    rtAlgorithm.calculateDistance();
+                    final float distance = rtAlgorithm.getDistance();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            txtDistance.setText(""+distance);
+                        }
+                    });
                 }
             }
 
