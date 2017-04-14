@@ -44,8 +44,11 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     private final String MONITORING_STOP = "/stop_monitoring";
 
     private TextView txtDistance;
+    private TextView txtAcceleration;
 
     private RTAlgorithm rtAlgorithm;
+
+    private final float THRESHOLD = 0.8F;
 
    @Override
     public void onCreate(Bundle bundle) {
@@ -67,9 +70,10 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
        Button buttStartMonitoring = (Button)findViewById(R.id.butt_startmonitoring);
        Button buttStopMonitoring = (Button)findViewById(R.id.butt_stopmonitoring);
        txtDistance = (TextView)findViewById(R.id.txt_distance);
+       txtAcceleration = (TextView)findViewById(R.id.txt_acc);
 
        // Init the processing algorithm.
-       rtAlgorithm = new RTAlgorithm(0.8F, 1);
+       rtAlgorithm = new RTAlgorithm(1F, 5);
 
        buttStartMonitoring.setOnClickListener(new View.OnClickListener() {
            @Override
@@ -80,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                Z.clear();
                time.clear();
 
-               rtAlgorithm = new RTAlgorithm(1F, 1);
+               rtAlgorithm = new RTAlgorithm(1F, 5);
 
                sendStartMonitoring();
            }
@@ -199,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     public void onDataChanged(DataEventBuffer dataEvents) {
         for(DataEvent dataEvent: dataEvents){
             if(dataEvent.getType() == DataEvent.TYPE_CHANGED){
-                DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
+                final DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
                 String path = dataEvent.getDataItem().getUri().getPath();
 
                 if(path.equals("/Value")){
@@ -215,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            txtAcceleration.setText(""+dataMap.getFloat("Y"));
                             txtDistance.setText(""+distance);
                         }
                     });
