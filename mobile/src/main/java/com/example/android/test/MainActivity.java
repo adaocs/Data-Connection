@@ -28,8 +28,17 @@ import com.google.android.gms.wearable.Wearable;
 
 import junit.framework.Test;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.concurrent.RunnableFuture;
+import java.util.Date;
+
+import static android.R.attr.data;
 
 
 public class MainActivity extends AppCompatActivity implements DataApi.DataListener,
@@ -47,6 +56,13 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     private TextView txtAcceleration;
 
     private RTAlgorithm rtAlgorithm;
+
+    private File dataFile;
+    private FileWriter dataFileWriter;
+    private BufferedWriter bufferedDataFileWriter;
+    //FileOutputStream outputStream;
+
+    private final String FILE_PATH = "/storage/emulated/0/WalkingData";
 
     private final float THRESHOLD = 0.8F;
 
@@ -74,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
 
        // Init the processing algorithm.
        rtAlgorithm = new RTAlgorithm(1F, 5);
+
 
        buttStartMonitoring.setOnClickListener(new View.OnClickListener() {
            @Override
@@ -134,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     @Override
     public void onResume() {
         super.onResume();
+        createNewDataFile();
         googleApiClient.connect();
     }
 
@@ -161,12 +179,14 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
 
     // Method which sends a start monitoring message to the watch.
     private void sendStartMonitoring() {
+        createNewDataFile();
         sendMessage(MONITORING_START);
     }
 
     // Method which sends a stop monitoring message to the watch.
     private void sendStopMonitoring() {
         sendMessage(MONITORING_STOP);
+        //closeDataFile();
     }
 
     private void sendMessage(final String path) {
@@ -207,25 +227,77 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                 String path = dataEvent.getDataItem().getUri().getPath();
 
                 if(path.equals("/Value")){
-                    X.add(dataMap.getFloat("X"));
-                    Y.add(dataMap.getFloat("Y"));
-                    Z.add(dataMap.getFloat("Z"));
-                    time.add(dataMap.getLong("Time"));
+                    final float x = dataMap.getFloat("X");
+                    final float y = dataMap.getFloat("Y");
+                    final float z = dataMap.getFloat("Z");
+                    final long t = dataMap.getLong("Time");
 
-                    rtAlgorithm.addAcceleration(dataMap.getLong("Time"), dataMap.getFloat("Y"));
+                    X.add(x);
+                    Y.add(y);
+                    Z.add(z);
+                    time.add(t);
+
+
+
+                    rtAlgorithm.addAcceleration(t, y);
                     rtAlgorithm.calculateVelocity();
                     rtAlgorithm.calculateDistance();
                     final float distance = rtAlgorithm.getDistance();
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            txtAcceleration.setText(""+dataMap.getFloat("Y"));
+                            txtAcceleration.setText(""+y);
                             txtDistance.setText(""+distance);
+                            addDataToFile(t, x, y, z);
                         }
                     });
                 }
             }
 
         }
+    }
+
+    private void createNewDataFile(){
+        closeDataFile();
+        Log.d("createNewDataFile()", "It at least started");
+        //outputStream = openFileOutput(myDir+"/secret.txt",MODE_PRIVATE);
+        //String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String timeStamp = SimpleDateFormat.getDateTimeInstance().format(new Date());
+        dataFile = new File(FILE_PATH + File.separator + timeStamp + ".acc");
+        Log.d("dataFile Path early", dataFile.getAbsolutePath());
+        try {
+            dataFile.createNewFile();
+            Log.d("dataFile Path", dataFile.getAbsolutePath());
+            dataFileWriter = new FileWriter(dataFile);
+            bufferedDataFileWriter = new BufferedWriter(dataFileWriter);
+        } catch (IOException e) {
+            Log.e("Exception", "Create file failed: " + e.toString());
+        }
+    }
+
+    private void addDataToFile(long time, float x, float y, float z){
+        try {
+            bufferedDataFileWriter.write(time + "," + x + "," + y + "," + z + '\n');
+            bufferedDataFileWriter.flush();
+        } catch (IOException e) {
+            Log.e("Exception", "File write failed: " + e.toString());
+        }
+    }
+
+    private void closeDataFile(){
+
+        try {
+            if(bufferedDataFileWriter != null) {
+                bufferedDataFileWriter.close();
+                bufferedDataFileWriter = null;
+            }
+            if(dataFileWriter != null) {
+                dataFileWriter.close();
+                dataFileWriter = null;
+            }
+        } catch (IOException e) {
+            Log.e("Exception", "File writers could not close:" + e.toString());
+        }
+        dataFile = null;
     }
 }
