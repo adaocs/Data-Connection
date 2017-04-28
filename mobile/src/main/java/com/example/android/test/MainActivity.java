@@ -33,6 +33,8 @@ import com.google.android.gms.wearable.Wearable;
 
 import junit.framework.Test;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,6 +50,7 @@ import java.util.Date;
 import static android.R.attr.data;
 import static android.R.attr.x;
 import static android.R.attr.y;
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 
 
 public class MainActivity extends AppCompatActivity implements DataApi.DataListener,
@@ -60,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         private ArrayList<Long> time;
 
         private float totalTime;
+
+        private float timerTime;
 
         public SingleRunData(ArrayList<Float>X, ArrayList<Float>Y, ArrayList<Float>Z, ArrayList<Long> time){
             this.X = X;
@@ -74,12 +79,20 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         public float getTotalTime(){
             return totalTime;
         }
+
+        public void addTimerTime(float timerTime){      // Currently unused
+            this.timerTime = timerTime;
+        }
     }
 
     private GoogleApiClient googleApiClient;
     private ArrayList<Float>X, Y, Z;                // The current x, y and z data
     private ArrayList<Long> time;                   // The current time data
     private ArrayList<SingleRunData> allData;       // The data for each completed run in a list
+
+    Timer timer;
+    int timerTime;                                  // The time from the timer
+    ArrayList<Float> totalTimes;                    // The time for each completed run from the timer
 
     private boolean monitoringFlag;                 // Tells whether we are monitoring now or not
 
@@ -90,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     private TextView txtDistance;
     private TextView txt_lap_num;
     private TextView txtAcceleration;
+    private TextView txtActualTime;
 
     private RTAlgorithm rtAlgorithm;
 
@@ -123,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
        Z = new ArrayList<>();
        time = new ArrayList<>();
        allData = new ArrayList<>();
+       totalTimes = new ArrayList<>();
 
        monitoringFlag = false;
 
@@ -133,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
        txtDistance = (TextView)findViewById(R.id.txt_distance);
        txt_lap_num = (TextView)findViewById(R.id.lap_num);
        txtAcceleration = (TextView)findViewById(R.id.txt_acc);
+       txtActualTime = (TextView)findViewById(R.id.accurate_time);
 
        // Init the processing algorithm.
        rtAlgorithm = new RTAlgorithm(1F, 5);
@@ -327,11 +343,20 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     }
 
     private void finishRun(){
+        /*
         float total = 0;
         for(SingleRunData oneData: allData) {
             total += oneData.getTotalTime();
         }
         float average = total/allData.size();
+        */
+
+        float total = 0;
+        for(float aTime: totalTimes) {
+            total += aTime;
+            Log.i("aTime", "" + aTime);
+        }
+        float average = total/totalTimes.size();
 
         Intent myIntent = new Intent(MainActivity.this, FinishPopup.class);
         myIntent.putExtra("averageTime", average);
@@ -380,11 +405,43 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         //////
         monitoringFlag = true;
         sendStartMonitoring();
+        startTimer();
+    }
+
+    private void startTimer(){
+        timerTime = 0;
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        float actualTime = ((float) timerTime) / 100;
+                        txtActualTime.setText("Accurate Time: "+ actualTime);
+                        timerTime++;
+                    }
+                });
+            }
+        }, 10, 10);     // Runs every 10 milliseconds
+    }
+
+    private void stopTimer(){
+        if(timer != null) {
+            timer.cancel();
+            timer = null;
+            float actualTime = ((float) timerTime) / 100;
+            totalTimes.add(actualTime);
+            Log.i("actual Time", "" + actualTime);
+        }
     }
 
     private void stop(){
         monitoringFlag = false;
         sendStopMonitoring();
+        stopTimer();
     }
 
     private void addDataFromLastRun(){
@@ -415,6 +472,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         txtAcceleration.setText("Acceleration");
         txtDistance.setText("Distance");
         txt_lap_num.setText("Lap #");
+        txtActualTime.setText("Accurate Time");
     }
 
     private void createNewDataFile(){
