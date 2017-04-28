@@ -465,6 +465,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         Z = new ArrayList<>();
         time = new ArrayList<>();
         allData = new ArrayList<>();
+        totalTimes = new ArrayList<>();
 
         monitoringFlag = false;
 
