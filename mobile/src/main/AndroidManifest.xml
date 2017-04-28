@@ -31,6 +31,8 @@
             </service>
         </activity>
 
+        <activity android:name=".FinishPopup" ></activity>
+
     </application>
 
 </manifest>
