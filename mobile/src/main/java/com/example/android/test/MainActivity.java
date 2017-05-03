@@ -52,6 +52,10 @@ import static android.R.attr.x;
 import static android.R.attr.y;
 import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 
+/*
+    Authors: Caleb Short, Shravan Aras, Anh Dao
+    Purpose: This class encapsulates both a timer and a walking algorithm
+ */
 
 public class MainActivity extends AppCompatActivity implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -87,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
 
     private GoogleApiClient googleApiClient;
     private ArrayList<Float>X, Y, Z;                // The current x, y and z data
-    private ArrayList<Long> time;                   // The current time data
+    private ArrayList<Long> time;                   // The current time data from the algorithm
     private ArrayList<SingleRunData> allData;       // The data for each completed run in a list
 
     Timer timer;
@@ -99,23 +103,17 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
     private final String MONITORING_START = "/start_monitoring";
     private final String MONITORING_STOP = "/stop_monitoring";
 
-    private TextView txtTime;
-    private TextView txtDistance;
-    private TextView txt_lap_num;
-    private TextView txtAcceleration;
-    private TextView txtActualTime;
+    private TextView txtTime;                       // The time as taken from the algorithm
+    private TextView txtDistance;                   // The distance as taken from the algorithm
+    private TextView txt_lap_num;                   // The lap number dependent on the size of totalTimes
+    private TextView txtAcceleration;               // The acceleration as taken from the algorithm
+    private TextView txtActualTime;                 // The time as taken from the timer
 
-    private RTAlgorithm rtAlgorithm;
-
-    private String dataFileName;
-    private File dataFile;
-    private FileWriter dataFileWriter;
-    private BufferedWriter bufferedDataFileWriter;
-    private final String FILE_PATH = "/storage/emulated/0/WalkingData";
+    private RTAlgorithm rtAlgorithm;                // An instance of the algorithm
 
     private final float THRESHOLD = 0.8F;           // The threshold for the algorithm
 
-    public static final int REQUEST_CODE = 1;
+    public static final int REQUEST_CODE = 1;       // The request code sent to the Activity FinishPopup
 
    @Override
     public void onCreate(Bundle bundle) {
@@ -129,8 +127,6 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                .addOnConnectionFailedListener(this)
                .build();
 
-       //stop();
-       //System.out.println();
 
        X = new ArrayList<>();
        Y = new ArrayList<>();
@@ -327,6 +323,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         }
     }
 
+    // A timer meant to determine when data is no longer being sent from the watch, so the data can now be saved
     private class MyTimerTask extends TimerTask{
         private long prevTime;
 
@@ -342,14 +339,8 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         }
     }
 
+    // When the finish button is pressed, finish with this function (jump to activity FinishPopup)
     private void finishRun(){
-        /*
-        float total = 0;
-        for(SingleRunData oneData: allData) {
-            total += oneData.getTotalTime();
-        }
-        float average = total/allData.size();
-        */
 
         float total = 0;
         for(float aTime: totalTimes) {
@@ -364,6 +355,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         startActivityForResult(myIntent, REQUEST_CODE);
     }
 
+    // What to do when the activity FinishPopup has completed
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         super.onActivityResult(requestCode, resultCode, data);
@@ -382,12 +374,14 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         Log.i("onActivityResult", "The request code was not REQUEST_CODE");
     }
 
+    // A function used by OnDataChanged to calculate the current time
     private float calculateCurrentTime(){
         float timeFormattedCorrectly = time.get(time.size()-1)-time.get(0);
         timeFormattedCorrectly /= 1000;
         return timeFormattedCorrectly;
     }
 
+    // Start everything when the start button is pressed
     private void start(){
         stop();         // stop everything before starting everything over
 
@@ -399,15 +393,14 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
 
         rtAlgorithm = new RTAlgorithm(1F, 5);
         //////
-        String timeStamp = SimpleDateFormat.getDateTimeInstance().format(new Date());
-        dataFileName = FILE_PATH + File.separator + timeStamp + ".acc";
-        txt_lap_num.setText("Lap #: " + (allData.size()+1));
+        txt_lap_num.setText("Lap #: " + (totalTimes.size()+1));
         //////
         monitoringFlag = true;
         sendStartMonitoring();
         startTimer();
     }
 
+    // Start the timer
     private void startTimer(){
         timerTime = 0;
         timer = new Timer();
@@ -428,6 +421,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         }, 10, 10);     // Runs every 10 milliseconds
     }
 
+    // Stop the timer
     private void stopTimer(){
         if(timer != null) {
             timer.cancel();
@@ -438,27 +432,24 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         }
     }
 
+    // Stop everything when the stop button is pressed
     private void stop(){
         monitoringFlag = false;
         sendStopMonitoring();
         stopTimer();
     }
 
+    // A function called by OnDataChanged to updat the local data storage
     private void addDataFromLastRun(){
         allData.add(new SingleRunData(X, Y, Z, time));
-        /*
-        createNewDataFile();
-        for(int i = 0; i < time.size(); i++){
-            addDataToFile(time.get(i), X.get(i), Y.get(i), Z.get(i));
-        }
-        closeDataFile();
-        */
     }
 
+    // The function that will be called to send the data to the database
     private void saveAllData(){
 
     }
 
+    // Restart everything and make the app start from the beginning
     private void restart(){
         X = new ArrayList<>();
         Y = new ArrayList<>();
@@ -476,49 +467,4 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         txtActualTime.setText("Accurate Time");
     }
 
-    private void createNewDataFile(){
-        closeDataFile();        // Close old data file first
-        Log.i("createNewDataFile()", "It at least started");
-        //String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        //String timeStamp = SimpleDateFormat.getDateTimeInstance().format(new Date());
-        //dataFile = new File(FILE_PATH + File.separator + timeStamp + ".acc");
-        dataFile = new File(dataFileName);
-        try {
-            dataFile.createNewFile();
-            dataFileWriter = new FileWriter(dataFile);
-            bufferedDataFileWriter = new BufferedWriter(dataFileWriter);
-        } catch (IOException e) {
-            Log.e("Exception", "Create file failed: " + e.toString());
-        }
-    }
-
-    private void addDataToFile(long time, float x, float y, float z){
-        try {
-            if(bufferedDataFileWriter != null) {        //This means that some of the data will not be recorded
-                bufferedDataFileWriter.write(time + "," + x + "," + y + "," + z + '\n');
-                bufferedDataFileWriter.flush();
-            }
-            else
-                Log.i("addDataToFile", "Can not add data to file because file is closed");
-        } catch (IOException e) {
-            Log.e("Exception", "File write failed: " + e.toString());
-        }
-    }
-
-    private void closeDataFile(){
-
-        try {
-            if(bufferedDataFileWriter != null) {
-                bufferedDataFileWriter.close();
-                bufferedDataFileWriter = null;
-            }
-            if(dataFileWriter != null) {
-                dataFileWriter.close();
-                dataFileWriter = null;
-            }
-        } catch (IOException e) {
-            Log.e("Exception", "File writers could not close:" + e.toString());
-        }
-        dataFile = null;
-    }
 }
