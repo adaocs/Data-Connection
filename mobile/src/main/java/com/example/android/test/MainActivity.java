@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
            public void onClick(View view) {
                if(monitoringFlag)
                    Toast.makeText(getApplicationContext(), "You can't finish mid-run!", Toast.LENGTH_SHORT).show();
-               else if(allData.size() == 0)
+               else if(totalTimes.size() == 0)
                    Toast.makeText(getApplicationContext(), "You must have at least 1 run to finish", Toast.LENGTH_SHORT).show();
                else
                    finishRun();
