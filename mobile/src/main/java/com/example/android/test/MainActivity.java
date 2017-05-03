@@ -60,39 +60,9 @@ import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 public class MainActivity extends AppCompatActivity implements DataApi.DataListener,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-    // This class holds all of the data from a single run. It should be used once the run is complete
-    private class SingleRunData{
-
-        private ArrayList<Float>X, Y, Z;
-        private ArrayList<Long> time;
-
-        private float totalTime;
-
-        private float timerTime;
-
-        public SingleRunData(ArrayList<Float>X, ArrayList<Float>Y, ArrayList<Float>Z, ArrayList<Long> time){
-            this.X = X;
-            this.Y = Y;
-            this.Z = Z;
-            this.time = time;
-
-            totalTime = time.get(time.size()-1)-time.get(0);
-            totalTime /= 1000;
-        }
-
-        public float getTotalTime(){
-            return totalTime;
-        }
-
-        public void addTimerTime(float timerTime){      // Currently unused
-            this.timerTime = timerTime;
-        }
-    }
-
     private GoogleApiClient googleApiClient;
     private ArrayList<Float>X, Y, Z;                // The current x, y and z data
     private ArrayList<Long> time;                   // The current time data from the algorithm
-    private ArrayList<SingleRunData> allData;       // The data for each completed run in a list
 
     Timer timer;
     int timerTime;                                  // The time from the timer
@@ -132,7 +102,6 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
        Y = new ArrayList<>();
        Z = new ArrayList<>();
        time = new ArrayList<>();
-       allData = new ArrayList<>();
        totalTimes = new ArrayList<>();
 
        monitoringFlag = false;
@@ -311,31 +280,11 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
                             txtTime.setText("Time: "+timeFormattedCorrectly);
                             txtAcceleration.setText("Acceleration: "+y);
                             txtDistance.setText("Distance: "+distance);
-                            //addDataToFile(t, x, y, z);
-
-                            Timer timer = new Timer();
-                            timer.schedule(new MyTimerTask(t), 300);    // Run this after 0.3 seconds
                         }
                     });
                 }
             }
 
-        }
-    }
-
-    // A timer meant to determine when data is no longer being sent from the watch, so the data can now be saved
-    private class MyTimerTask extends TimerTask{
-        private long prevTime;
-
-        public MyTimerTask(long prevTime){
-            this.prevTime = prevTime;
-        }
-
-        @Override
-        public void run() {
-            if(time.size() != 0 && this.prevTime == time.get(time.size()-1)) {
-                addDataFromLastRun();
-            }
         }
     }
 
@@ -361,11 +310,9 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == REQUEST_CODE){
             if(resultCode == RESULT_OK){
-                saveAllData();
                 restart();
             }
             else if(resultCode == RESULT_CANCELED){
-                saveAllData();
                 finish();
             }
             else
@@ -439,23 +386,12 @@ public class MainActivity extends AppCompatActivity implements DataApi.DataListe
         stopTimer();
     }
 
-    // A function called by OnDataChanged to updat the local data storage
-    private void addDataFromLastRun(){
-        allData.add(new SingleRunData(X, Y, Z, time));
-    }
-
-    // The function that will be called to send the data to the database
-    private void saveAllData(){
-
-    }
-
     // Restart everything and make the app start from the beginning
     private void restart(){
         X = new ArrayList<>();
         Y = new ArrayList<>();
         Z = new ArrayList<>();
         time = new ArrayList<>();
-        allData = new ArrayList<>();
         totalTimes = new ArrayList<>();
 
         monitoringFlag = false;
